@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "917664454562",
+    "project_id": "easehubapp-87569",
+    "storage_bucket": "easehubapp-87569.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:917664454562:android:81f539c49807bf2dbf44fb",
+        "android_client_info": {
+          "package_name": "com.example.easehub_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDf1xeWDBcirMYzfxBhu1_KLMFUSYVcxTQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
