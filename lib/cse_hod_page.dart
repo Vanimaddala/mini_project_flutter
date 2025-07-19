@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'grant_event_permissions.dart';
 import 'grant_outpass_permissions.dart';
 import 'todays_permission_dashboard.dart';
-import 'analytics.dart';
+import 'permission_analytics.dart';
 import 'login.dart';
 import 'sec.dart';
 
@@ -46,77 +46,26 @@ class _CseHodPageState extends State<CseHodPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // App Bar
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [],
       ),
+
+      // Drawer Menu
       drawer: Drawer(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.only(
-                  bottomRight: Radius.circular(40),
-                  bottomLeft: Radius.circular(40),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(height: 10),
-                  Center(
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        image: DecorationImage(
-                          image: NetworkImage(widget.photo ?? ''),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    ' ${widget.name ?? ''}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '${widget.branch == 'CSE' ? 'Computer Science and Engineering' : 'Electronics and Communication Engineering'}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    'Role: ${widget.role ?? ''}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildDrawerHeader(),
             ListTile(
+              leading: Icon(Icons.school, color: Colors.black),
               title: Text(
-                'National University of India for Techonlogy and Innovation (NUITI)',
+                'Phd in Data Mining at University of Sreekar',
                 style: TextStyle(color: Colors.black),
               ),
-              leading: Icon(Icons.school, color: Colors.black),
-              onTap: () {
-                // Handle navigation
-              },
+              onTap: () {},
             ),
             Divider(),
             ListTile(
@@ -125,15 +74,15 @@ class _CseHodPageState extends State<CseHodPage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => LoginScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
                 );
               },
             ),
           ],
         ),
       ),
+
+      // Page Content
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {
@@ -147,13 +96,15 @@ class _CseHodPageState extends State<CseHodPage> {
             hodDepartment: widget.branch ?? "",
             token: widget.token ?? "",
           ),
-          TodaysPermissionDashboard(token: widget.token ?? ""),
-          Analytics(token: widget.token ?? ""),
+          EventPermissionsPage(token: widget.token ?? ""),
+          HourlyOutpassAnalytics(token: widget.token ?? ""),
           Sec(token: widget.token ?? ""),
         ],
       ),
+
+      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
+        items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.event),
             label: 'Events',
@@ -179,6 +130,81 @@ class _CseHodPageState extends State<CseHodPage> {
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
+      ),
+    );
+  }
+
+  // Drawer Header Widget
+  Widget _buildDrawerHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Colors.blue,
+        borderRadius: BorderRadius.only(
+          bottomRight: Radius.circular(40),
+          bottomLeft: Radius.circular(40),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 10),
+          Center(
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: NetworkImage(widget.photo ?? ''),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            widget.name ?? '',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.branch == 'CSD'
+                ? 'Head of Department of Computer Science and Data Science'
+                : 'Head of Department of Artificial Intelligence and Machine Learning',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.branch == 'CSD'
+                ? '"Data is the new oil — extract, refine, and power innovation."'
+                : '"The future belongs to those who understand and teach machines to learn."',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'MLR Institute Of Technology',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

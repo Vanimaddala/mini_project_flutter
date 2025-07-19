@@ -5,27 +5,21 @@ import 'package:http/http.dart' as http;
 class GrantEventPermissions extends StatefulWidget {
   final String token;
 
-  GrantEventPermissions({
-    required this.token,
-  });
+  GrantEventPermissions({required this.token});
 
   @override
   _GrantEventPermissionsState createState() => _GrantEventPermissionsState();
 }
 
 class _GrantEventPermissionsState extends State<GrantEventPermissions> {
-  String selectedYear = '3';
-  String selectedBranch = 'CSE';
+  String selectedYear = '1st';
   String event = '';
   late DateTime selectedStartDate;
   late DateTime selectedEndDate;
-  bool permissionsGranted = false;
-  late List<dynamic> responseData = [];
 
-  // List to keep track of selected students
+  List<dynamic> responseData = [];
   List<int> selectedStudents = [];
 
-  // Scroll controller to control the scrollbar
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -33,12 +27,15 @@ class _GrantEventPermissionsState extends State<GrantEventPermissions> {
     super.initState();
     selectedStartDate = DateTime.now();
     selectedEndDate = DateTime.now();
-    fetchDataFromServer(selectedYear, selectedBranch);
+    fetchDataFromServer();
   }
 
-  void fetchDataFromServer(String year, String branch) async {
-    String apiUrl =
-        'https://easehub-1.onrender.com/api/students/event/permission/$year/$branch';
+  // ----------------------------- API Calls -----------------------------
+
+  void fetchDataFromServer() async {
+    final String apiUrl =
+        'http://10.0.2.2:5000/api/v1/students/year/$selectedYear';
+
     try {
       final response = await http.get(
         Uri.parse(apiUrl),
@@ -50,13 +47,14 @@ class _GrantEventPermissionsState extends State<GrantEventPermissions> {
       if (response.statusCode == 200) {
         setState(() {
           responseData = json.decode(response.body);
+          selectedStudents.clear();
         });
       } else {
-        throw Exception('Failed to fetch students: ${response.statusCode}');
+        showSnackBar('Failed to fetch students');
       }
     } catch (e) {
       print('Error fetching students: $e');
-      // Optionally, show a snackbar or handle the error in UI
+      showSnackBar('Error fetching students');
     }
   }
 
@@ -64,23 +62,22 @@ class _GrantEventPermissionsState extends State<GrantEventPermissions> {
     if (!validateFields()) return;
 
     try {
-      List selectedRollNos = selectedStudents
-          .map((studentIndex) => responseData[studentIndex]['rollNo'])
+      List<String> selectedRollNos = selectedStudents
+          .map((index) => responseData[index]['rollNo'].toString())
           .toList();
 
       Map<String, dynamic> requestBody = {
-        "ids": selectedRollNos,
-        "start":
-            selectedStartDate.toIso8601String().substring(0, 10) + 'T00:00:00',
-        "end": selectedEndDate.toIso8601String().substring(0, 10) + 'T00:00:00',
-        "reason": event,
+        "rollNumbers": selectedRollNos,
+        "startDate": selectedStartDate.toUtc().toIso8601String(),
+        "endDate": selectedEndDate.toUtc().toIso8601String(),
       };
 
-      String apiUrl =
-          'https://easehub-1.onrender.com/api/students/event/permissions';
+      final String apiUrl =
+          'http://10.0.2.2:5000/api/v1/event-permissions/grant';
+
       final response = await http.post(
         Uri.parse(apiUrl),
-        headers: <String, String>{
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.token}',
         },
@@ -88,42 +85,41 @@ class _GrantEventPermissionsState extends State<GrantEventPermissions> {
       );
 
       if (response.statusCode == 200) {
-        print('Permissions granted successfully!');
-        setState(() {
-          permissionsGranted = true;
-        });
         showDialog(
           context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text('Permissions Granted'),
-              content: Text('Permissions granted successfully!'),
-              actions: <Widget>[
-                TextButton(
-                  child: Text('OK'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
+          builder: (context) => AlertDialog(
+            title: Text('Success'),
+            content: Text('Permissions granted successfully.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('OK'),
+              ),
+            ],
+          ),
         );
         setState(() {
           event = '';
+          selectedStudents.clear();
         });
       } else {
-        print(
-            'Failed to grant permissions. Status code: ${response.statusCode}');
+        showSnackBar('Failed to grant permissions');
       }
     } catch (e) {
       print('Error granting permissions: $e');
+      showSnackBar('Error granting permissions');
     }
   }
+
+  // ----------------------------- Helpers -----------------------------
 
   bool validateFields() {
     if (event.isEmpty) {
       showSnackBar('Event name cannot be empty');
+      return false;
+    }
+    if (selectedStudents.isEmpty) {
+      showSnackBar('No students selected');
       return false;
     }
     return true;
@@ -131,42 +127,28 @@ class _GrantEventPermissionsState extends State<GrantEventPermissions> {
 
   void showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: Duration(seconds: 2),
-      ),
+      SnackBar(content: Text(message), duration: Duration(seconds: 2)),
     );
   }
 
-  Future<void> _selectStartDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context, bool isStart) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: selectedStartDate,
+      initialDate: isStart ? selectedStartDate : selectedEndDate,
       firstDate: DateTime.now(),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != selectedStartDate) {
+    if (picked != null) {
       setState(() {
-        selectedStartDate = picked;
+        if (isStart) {
+          selectedStartDate = picked;
+        } else {
+          selectedEndDate = picked;
+        }
       });
     }
   }
 
-  Future<void> _selectEndDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedEndDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null && picked != selectedEndDate) {
-      setState(() {
-        selectedEndDate = picked;
-      });
-    }
-  }
-
-  // Function to toggle selection of a student
   void toggleStudentSelection(int index) {
     setState(() {
       if (selectedStudents.contains(index)) {
@@ -176,6 +158,8 @@ class _GrantEventPermissionsState extends State<GrantEventPermissions> {
       }
     });
   }
+
+  // ----------------------------- UI -----------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -196,199 +180,118 @@ class _GrantEventPermissionsState extends State<GrantEventPermissions> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 10),
+                // Year Dropdown
                 Row(
                   children: [
-                    SizedBox(width: 10),
-                    Text(
-                      'Year:',
-                      style: TextStyle(fontSize: 18, color: Colors.black),
-                    ),
-                    SizedBox(width: 10),
+                    Text('Year:'),
+                    SizedBox(width: 8),
                     DropdownButton<String>(
                       value: selectedYear,
-                      onChanged: (String? newValue) {
+                      onChanged: (newValue) {
                         if (newValue != null) {
-                          setState(() {
-                            selectedYear = newValue;
-                          });
-                          fetchDataFromServer(selectedYear, selectedBranch);
+                          setState(() => selectedYear = newValue);
+                          fetchDataFromServer();
                         }
                       },
-                      items: <String>['1', '2', '3', '4']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                    ),
-                    SizedBox(width: 20),
-                    Text(
-                      'Branch:',
-                      style: TextStyle(fontSize: 18, color: Colors.black),
-                    ),
-                    SizedBox(width: 10),
-                    DropdownButton<String>(
-                      value: selectedBranch,
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            selectedBranch = newValue;
-                          });
-                          fetchDataFromServer(selectedYear, selectedBranch);
-                        }
-                      },
-                      items: <String>['CSE', 'ECE']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
+                      items: ['1st', '2nd', '3rd', '4th']
+                          .map((year) => DropdownMenuItem(
+                                value: year,
+                                child: Text(year),
+                              ))
+                          .toList(),
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
-                Text(
-                  'Start Date:',
-                  style: TextStyle(fontSize: 18, color: Colors.black),
+
+                SizedBox(height: 16),
+
+                // Start Date
+                Text('Start Date:'),
+                TextButton(
+                  onPressed: () => _selectDate(context, true),
+                  child: Text(
+                    "${selectedStartDate.toLocal()}".split(' ')[0],
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
-                SizedBox(height: 10),
-                Row(
-                  children: [
-                    SizedBox(width: 10),
-                    TextButton(
-                      onPressed: () => _selectStartDate(context),
-                      child: Text(
-                        "${selectedStartDate.toLocal()}".split(' ')[0],
-                        style: TextStyle(fontSize: 20, color: Colors.black),
-                      ),
-                    ),
-                  ],
+
+                // End Date
+                Text('End Date:'),
+                TextButton(
+                  onPressed: () => _selectDate(context, false),
+                  child: Text(
+                    "${selectedEndDate.toLocal()}".split(' ')[0],
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
-                SizedBox(height: 20),
-                Text(
-                  'End Date:',
-                  style: TextStyle(fontSize: 18, color: Colors.black),
-                ),
-                SizedBox(height: 10),
-                Row(
-                  children: [
-                    SizedBox(width: 10),
-                    TextButton(
-                      onPressed: () => _selectEndDate(context),
-                      child: Text(
-                        "${selectedEndDate.toLocal()}".split(' ')[0],
-                        style: TextStyle(fontSize: 20, color: Colors.black),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
+
+                // Event Name Field
                 TextFormField(
                   decoration: InputDecoration(
                     labelText: 'Event Name',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.all(10),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      event = value;
-                    });
-                  },
+                  onChanged: (value) => setState(() => event = value),
                 ),
+
                 SizedBox(height: 20),
+
+                // Grant Button
                 Center(
                   child: ElevatedButton(
                     onPressed: () {
                       showDialog(
                         context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('Confirm Permission!'),
-                            content: Text(
-                                'Are you sure you want to grant the permissions to the selected students for the event "$event" from ${selectedStartDate.toLocal()} to ${selectedEndDate.toLocal()}?'),
-                            actions: <Widget>[
-                              TextButton(
-                                child: Text('Cancel'),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                              TextButton(
-                                child: Text('Grant'),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                  grantPermissions();
-                                },
-                              ),
-                            ],
-                          );
-                        },
+                        builder: (context) => AlertDialog(
+                          title: Text('Confirm Grant'),
+                          content: Text(
+                            'Grant permission to selected students for "$event"?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                grantPermissions();
+                              },
+                              child: Text('Grant'),
+                            ),
+                          ],
+                        ),
                       );
                     },
                     child: Text('Grant Permissions'),
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.blue,
-                      textStyle: TextStyle(color: Colors.white),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                    ),
                   ),
                 ),
-                SizedBox(height: 20),
-                if (responseData.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Students List:',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 10),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        controller: _scrollController,
-                        itemCount: responseData.length,
-                        itemBuilder: (context, index) {
-                          // Check if current student is selected
-                          bool isSelected = selectedStudents.contains(index);
 
-                          return GestureDetector(
-                            onTap: () {
-                              toggleStudentSelection(index);
-                            },
-                            child: Card(
-                              margin: EdgeInsets.symmetric(
-                                  vertical: 8, horizontal: 16),
-                              elevation: 3,
-                              color:
-                                  isSelected ? Colors.green[100] : Colors.white,
-                              child: ListTile(
-                                title: Text(
-                                  responseData[index]['name'],
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(height: 4),
-                                    Text(
-                                        'Roll No: ${responseData[index]['rollNo']}'),
-                                    SizedBox(height: 4),
-                                    Text(
-                                        'Mentor: ${responseData[index]['mentorId']}'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                SizedBox(height: 20),
+
+                // Student List
+                if (responseData.isNotEmpty)
+                  ListView.builder(
+                    shrinkWrap: true,
+                    controller: _scrollController,
+                    itemCount: responseData.length,
+                    itemBuilder: (context, index) {
+                      bool isSelected = selectedStudents.contains(index);
+                      return GestureDetector(
+                        onTap: () => toggleStudentSelection(index),
+                        child: Card(
+                          color: isSelected ? Colors.green[100] : Colors.white,
+                          child: ListTile(
+                            title: Text(responseData[index]['name']),
+                            subtitle: Text(
+                                "Roll No: ${responseData[index]['rollNo']}"),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                else
+                  Center(child: Text('No students found')),
               ],
             ),
           ),

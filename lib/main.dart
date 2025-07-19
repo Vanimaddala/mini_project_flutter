@@ -2,125 +2,65 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'login.dart';
 
-void main() async {
-  runApp(MyApp());
+void main() {
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key); // Add const constructor
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Hide debug banner
-      home: SplashScreen(), // Set SplashScreen as home
+      debugShowCheckedModeBanner: false, // Remove debug banner
+      home: const SplashScreen(),
       theme: ThemeData(
-        primaryColor:
-            Color.fromARGB(255, 252, 252, 252), // Dark blue primary color
-        scaffoldBackgroundColor: Colors.white, // White background color
+        primaryColor: const Color(0xFFFCFCFC),
+        scaffoldBackgroundColor: Colors.white,
       ),
     );
   }
 }
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({Key? key}) : super(key: key);
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
+
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     );
+
     _animation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
     );
+
     _controller.repeat(reverse: true);
-    startTime();
+
+    _startTimer();
   }
 
-  startTime() async {
-    var duration = Duration(seconds: 4);
-    return Timer(duration, route);
+  void _startTimer() {
+    Timer(const Duration(seconds: 4), _navigateToLogin);
   }
 
-  route() {
+  void _navigateToLogin() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(
-          255, 255, 255, 255), // Set background color to dark blue
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleTransition(
-              scale: _animation,
-              child: Container(
-                width: 100, // Adjust the width as needed
-                height: 100, // Adjust the height as needed
-                decoration: BoxDecoration(
-                  color: Color.fromARGB(255, 0, 87, 163),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          Color.fromARGB(255, 255, 251, 251).withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 2,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    'EH',
-                    style: TextStyle(
-                      fontSize: 40, // Adjust the font size as needed
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[900], // Set the color of the text
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              "EaseHub",
-              style: TextStyle(
-                color: Color.fromARGB(255, 1, 73, 129),
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 20),
-            SizedBox(
-              width: 50,
-              height: 50,
-              child: CircularProgressIndicator(
-                strokeWidth: 4,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                    Color.fromARGB(104, 8, 176, 248)),
-              ),
-            ),
-          ],
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
@@ -128,5 +68,69 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: _animation,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0057A3),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      spreadRadius: 2,
+                      blurRadius: 2,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'VG',
+                  style: TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue[900],
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "V Grant",
+              style: TextStyle(
+                color: Color(0xFF014981),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 50,
+              height: 50,
+              child: CircularProgressIndicator(
+                strokeWidth: 4,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  const Color(0x6808B0F8), // 40% opacity blue
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

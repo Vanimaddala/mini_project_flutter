@@ -2,205 +2,114 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class TodaysPermissionDashboard extends StatefulWidget {
+class EventPermissionsPage extends StatefulWidget {
   final String token;
 
-  TodaysPermissionDashboard({
-    required this.token,
-  });
+  const EventPermissionsPage({Key? key, required this.token}) : super(key: key);
 
   @override
-  _TodaysPermissionDashboardState createState() =>
-      _TodaysPermissionDashboardState();
+  State<EventPermissionsPage> createState() => _EventPermissionsPageState();
 }
 
-class _TodaysPermissionDashboardState extends State<TodaysPermissionDashboard> {
-  List<Map<String, dynamic>> studentPermissions = [];
-  late http.Client client;
-  String selectedYear = '3'; // Default selected year
-  String selectedBranch = 'CSE'; // Default selected branch
-  List<String> years = ['1', '2', '3', '4'];
-  List<String> branches = ['CSE', 'ECE']; // Add more branches if needed
+class _EventPermissionsPageState extends State<EventPermissionsPage> {
+  List<dynamic> studentPermissions = [];
+  bool isLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    client = http.Client();
-    fetchData(selectedYear, selectedBranch);
+    fetchData();
   }
 
-  @override
-  void dispose() {
-    client.close();
-    super.dispose();
-  }
-
-  void fetchData(String year, String branch) async {
-    // Constructing the API URL with the selected year and branch
-    String apiUrl =
-        'https://easehub-1.onrender.com/api/students/event/$year/$branch/permission';
-
-    print('Fetching data for Year: $year, Branch: $branch'); // Debug print
+  Future<void> fetchData() async {
+    final url =
+        Uri.parse('http://10.0.2.2:5000/api/v1/faculty/event-permissions');
 
     try {
-      final response = await client.get(Uri.parse(apiUrl), headers: {
-        'Authorization': 'Bearer ${widget.token}',
-      });
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final Map<String, dynamic> res = json.decode(response.body);
+
+        final List<dynamic> permissions = res['eventPermissions'];
+
         setState(() {
-          studentPermissions = List<Map<String, dynamic>>.from(responseData);
+          studentPermissions = permissions;
+          isLoading = false;
+          errorMessage = null;
         });
-        print(
-            'Fetched ${studentPermissions.length} permissions'); // Debug print
       } else {
-        // Handle error
-        print('Failed to fetch data: ${response.statusCode}');
+        setState(() {
+          errorMessage = 'Failed to load data: ${response.statusCode}';
+          isLoading = false;
+        });
       }
     } catch (e) {
-      // Handle network or other exceptions
-      print('Error fetching data: $e');
+      setState(() {
+        errorMessage = 'Error fetching data: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  String formatDate(String dateStr) {
+    // Optional: Format ISO date to YYYY-MM-DD
+    try {
+      final dt = DateTime.parse(dateStr);
+      return "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}";
+    } catch (_) {
+      return dateStr;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Event Permissions')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Event Permissions')),
+        body: Center(child: Text(errorMessage!)),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Permission Dashboard'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                DropdownButton<String>(
-                  value: selectedYear,
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        selectedYear = newValue;
-                      });
-                      fetchData(selectedYear, selectedBranch);
-                    }
-                  },
-                  items: years.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  underline: Container(),
-                  dropdownColor: Colors.white,
-                  icon: Icon(Icons.arrow_drop_down, color: Colors.black),
-                ),
-                DropdownButton<String>(
-                  value: selectedBranch,
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        selectedBranch = newValue;
-                      });
-                      fetchData(selectedYear, selectedBranch);
-                    }
-                  },
-                  items: branches.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  underline: Container(),
-                  dropdownColor: Colors.white,
-                  icon: Icon(Icons.arrow_drop_down, color: Colors.black),
-                ),
-              ],
-            ),
-            SizedBox(height: 20),
-            Expanded(
-              child: ListView.separated(
-                itemCount: studentPermissions.length,
-                separatorBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Divider(),
-                ),
-                itemBuilder: (context, index) {
-                  final student = studentPermissions[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Container(
-                      padding: EdgeInsets.all(12.0),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue[100]!, Colors.blue[300]!],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(15.0),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.person, color: Colors.blue[900]),
-                              SizedBox(width: 8),
-                              Text(
-                                'Name: ${student['name']}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(Icons.confirmation_number,
-                                  color: Colors.blue[900]),
-                              SizedBox(width: 8),
-                              Text('Roll No.: ${student['rollNo']}'),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(Icons.calendar_today,
-                                  color: Colors.blue[900]),
-                              SizedBox(width: 8),
-                              Text('End: ${student['end']}'),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(Icons.note, color: Colors.blue[900]),
-                              SizedBox(width: 8),
-                              Text('Reason: ${student['reason']}'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+      appBar: AppBar(title: const Text('Event Permissions')),
+      body: ListView.builder(
+        itemCount: studentPermissions.length,
+        itemBuilder: (context, index) {
+          final item = studentPermissions[index];
+
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: ListTile(
+              title: Text('Roll No: ${item['rollNo']}'),
+              subtitle: Text('Granted by: ${item['grantedBy']}'),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('From:\n${formatDate(item['startDate'])}',
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 4),
+                  Text('To:\n${formatDate(item['endDate'])}',
+                      textAlign: TextAlign.center),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

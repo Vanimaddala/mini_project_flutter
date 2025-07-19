@@ -3,16 +3,23 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class Sec extends StatefulWidget {
+class SecurityPage extends StatefulWidget {
   final String token;
+  final String name;
+  final String photoUrl;
 
-  Sec({Key? key, required this.token}) : super(key: key);
+  SecurityPage({
+    Key? key,
+    required this.token,
+    required this.name,
+    required this.photoUrl,
+  }) : super(key: key);
 
   @override
   _SecurityPageState createState() => _SecurityPageState();
 }
 
-class _SecurityPageState extends State<Sec> {
+class _SecurityPageState extends State<SecurityPage> {
   List<String> grantedPermissions = [];
   List<String> filteredPermissions = [];
   TextEditingController _searchController = TextEditingController();
@@ -51,7 +58,7 @@ class _SecurityPageState extends State<Sec> {
 
         setState(() {
           grantedPermissions =
-              data.map((student) => ' ${student['rollNo']}').toList();
+              data.map((student) => '${student['rollNo']}').toList();
           filteredPermissions = grantedPermissions;
           dataFetched = true;
         });
@@ -80,8 +87,7 @@ class _SecurityPageState extends State<Sec> {
     });
 
     int index = filteredPermissions.indexWhere((permission) {
-      List<String> parts = permission.split(' / ');
-      return parts.length == 2 && parts[1] == rollNo;
+      return permission == rollNo;
     });
 
     if (index != -1) {
@@ -120,7 +126,7 @@ class _SecurityPageState extends State<Sec> {
     return ElevatedButton(
       onPressed: () => searchRollNumber(_searchController.text),
       style: ElevatedButton.styleFrom(
-        primary: Colors.blue[900],
+        backgroundColor: Colors.blue[900],
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -131,11 +137,11 @@ class _SecurityPageState extends State<Sec> {
 
   Widget buildListView() {
     if (isLoading) {
-      return Center(child: CircularProgressIndicator());
+      return Expanded(child: Center(child: CircularProgressIndicator()));
     }
 
     if (filteredPermissions.isEmpty) {
-      return Center(child: Text('No permissions found.'));
+      return Expanded(child: Center(child: Text('No permissions found.')));
     }
 
     return Expanded(
@@ -160,8 +166,7 @@ class _SecurityPageState extends State<Sec> {
                   ),
                 ),
                 onTap: () {
-                  String rollNo = filteredPermissions[index].split(' / ')[1];
-                  print('Selected Roll Number: $rollNo');
+                  print('Selected Roll Number: ${filteredPermissions[index]}');
                 },
               ),
             );
@@ -171,17 +176,48 @@ class _SecurityPageState extends State<Sec> {
     );
   }
 
+  Widget buildProfileHeader() {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 30,
+          backgroundImage: NetworkImage(widget.photoUrl),
+        ),
+        SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.name,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Security appointed for today.',
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Outpass Permission List for Today'),
+        title: Text(
+          'Outpass Permissions',
+          style: TextStyle(color: Colors.black),
+        ),
         backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.black),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            buildProfileHeader(),
+            SizedBox(height: 20),
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -200,5 +236,12 @@ class _SecurityPageState extends State<Sec> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _timer?.cancel();
+    super.dispose();
   }
 }
